@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ENV 102 Flashcards</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; min-height: 100vh; padding: 2rem 1rem; color: #1a1a1a; }
+  h1 { text-align: center; font-size: 22px; font-weight: 500; margin-bottom: 0.4rem; color: #1a1a1a; }
+  .subtitle { text-align: center; font-size: 14px; color: #888; margin-bottom: 1.5rem; }
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 1.25rem; }
+  .filter-btn { font-size: 12px; padding: 5px 14px; border-radius: 8px; border: 0.5px solid #ccc; background: #eee; color: #666; cursor: pointer; transition: all 0.15s; }
+  .filter-btn.active { background: #dbeafe; color: #1d4ed8; border-color: transparent; }
+  .progress-wrap { max-width: 600px; margin: 0 auto 1.5rem; height: 3px; background: #e0e0e0; border-radius: 2px; }
+  .progress-fill { height: 100%; background: #3b82f6; border-radius: 2px; transition: width 0.3s; }
+  .card-container { perspective: 1000px; width: 100%; max-width: 600px; margin: 0 auto; height: 280px; cursor: pointer; }
+  .card { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.5s ease; }
+  .card.flipped { transform: rotateY(180deg); }
+  .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 12px; border: 0.5px solid #ddd; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
+  .card-back { transform: rotateY(180deg); }
+  .tag { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 8px; margin-bottom: 1rem; }
+  .tag-theorist { background: #dbeafe; color: #1d4ed8; }
+  .tag-concept { background: #dcfce7; color: #15803d; }
+  .tag-date { background: #fef9c3; color: #a16207; }
+  .tag-casestudy { background: #fee2e2; color: #b91c1c; }
+  .q-text { font-size: 18px; font-weight: 500; color: #1a1a1a; line-height: 1.4; }
+  .a-text { font-size: 16px; font-weight: 500; color: #1a1a1a; line-height: 1.5; }
+  .a-sub { font-size: 13px; color: #555; margin-top: 0.6rem; line-height: 1.6; }
+  .hint { text-align: center; font-size: 12px; color: #aaa; margin-top: 0.75rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+  .controls { display: flex; align-items: center; justify-content: space-between; margin-top: 1.25rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+  .btn { padding: 9px 22px; font-size: 14px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #1a1a1a; cursor: pointer; transition: background 0.15s; }
+  .btn:hover { background: #f0f0f0; }
+  .counter { font-size: 13px; color: #888; }
+  .shuffle-btn { display: block; margin: 1.25rem auto 0; font-size: 13px; padding: 7px 18px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #555; cursor: pointer; }
+  .shuffle-btn:hover { background: #f0f0f0; }
+</style>
+</head>
+<body>
+
+<h1>ENV 102 Flashcards</h1>
+<p class="subtitle">All three modules — theorists, concepts, dates, case studies</p>
+
+<div class="filter-row" id="filters">
+  <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+  <button class="filter-btn" onclick="setFilter('theorist', this)">Theorist</button>
+  <button class="filter-btn" onclick="setFilter('concept', this)">Concept</button>
+  <button class="filter-btn" onclick="setFilter('date', this)">Date</button>
+  <button class="filter-btn" onclick="setFilter('casestudy', this)">Case study</button>
+</div>
+
+<div class="progress-wrap"><div class="progress-fill" id="prog"></div></div>
+
+<div class="card-container" onclick="flipCard()">
+  <div class="card" id="card">
+    <div class="card-face card-front">
+      <div class="tag" id="front-tag"></div>
+      <div class="q-text" id="front-text"></div>
+    </div>
+    <div class="card-face card-back">
+      <div class="tag" id="back-tag"></div>
+      <div class="a-text" id="back-text"></div>
+      <div class="a-sub" id="back-sub"></div>
+    </div>
+  </div>
+</div>
+
+<p class="hint" id="hint">Click card to reveal answer</p>
+
+<div class="controls">
+  <button class="btn" onclick="prevCard()">← Previous</button>
+  <span class="counter" id="counter"></span>
+  <button class="btn" onclick="nextCard()">Next →</button>
+</div>
+
+<button class="shuffle-btn" onclick="shuffleAndReset()">↺ Shuffle deck</button>
+
+<script>
+const all = [
+  { type:'date', q:'When did Crutzen & Stoermer coin the Anthropocene?', atag:'theorist', a:'Crutzen & Stoermer (2000)', sub:'Proposed the Anthropocene — the geological epoch in which human activity became the dominant force shaping Earth systems.' },
+  { type:'theorist', q:'Who defined the Anthropocene and what did they argue?', atag:'concept', a:'Crutzen & Stoermer (2000)', sub:'Humans are now a geological force — Earth systems are shaped primarily by human activity, meaning all environmental analysis must also be social.' },
+  { type:'concept', q:'What is the Anthropocene?', atag:'theorist', a:'Coined by Crutzen & Stoermer (2000)', sub:'A proposed geological epoch in which human activity has become the dominant force shaping Earth systems — atmosphere, hydrosphere, biosphere, lithosphere.' },
+  { type:'theorist', q:'What does Castree (2024) argue?', atag:'concept', a:'Anthropocene implications for social research', sub:'Environmental consequences of the Anthropocene cannot be understood through natural processes alone — they require social explanation. Local analysis requires global context.' },
+  { type:'concept', q:'What is planetary urbanisation?', atag:'theorist', a:'Theorised by Brenner & Schmid', sub:'Urban processes now extend across the entire planet, reorganising remote landscapes, agricultural regions, resource extraction zones and ecosystems — not just cities.' },
+  { type:'theorist', q:'Who theorised planetary urbanisation?', atag:'date', a:'Brenner & Schmid', sub:'Argued urbanisation is no longer confined to cities. Urban processes now organise the entire planet. Supported by Derudder (2020) and Soja (2014).' },
+  { type:'date', q:'What did Soja argue and when?', atag:'theorist', a:'Soja (2014)', sub:'Every square inch of the world is urbanised to some degree. Supports Brenner & Schmid\'s planetary urbanisation thesis.' },
+  { type:'theorist', q:'What does Harvey (1990) argue?', atag:'concept', a:'Time-space compression', sub:'The removal of geographical barriers to capital movement through financialisation and technology — makes capital globally mobile, enabling large-scale FDI that drives urban development anywhere.' },
+  { type:'concept', q:'What is time-space compression?', atag:'theorist', a:'Harvey (1990)', sub:'The process by which financialisation and technology remove geographical barriers to capital movement, making capital globally mobile and enabling FDI-driven urban development.' },
+  { type:'theorist', q:'What does Castells (1998) argue?', atag:'concept', a:'Social exclusion', sub:'A systematic process that prevents people from autonomous participation in society — through poverty, discrimination, poor housing, lack of transport and services.' },
+  { type:'concept', q:'What is social exclusion?', atag:'theorist', a:'Castells (1998)', sub:'Systematic process preventing autonomous participation in society. Produces urban polarisation when combined with capital-driven development.' },
+  { type:'theorist', q:'What does Marcuse (2000) argue?', atag:'concept', a:'Enclaves of homogeneity', sub:'Urban areas sort into distinctive subareas of socio-spatial separation — gated communities, gentrified zones, informal settlements — reflecting class, race and wealth.' },
+  { type:'date', q:'When did Hilferding write about financialisation?', atag:'theorist', a:'Hilferding (1910)', sub:'Theorised finance capitalism — the financialisation of the economy that makes capital increasingly liquid and globally mobile, enabling large-scale investment in urban development.' },
+  { type:'casestudy', q:'What happened at Boeung Kak Lake, Phnom Penh?', atag:'theorist', a:'Short (2017) — FDI-driven displacement', sub:'4,000 families displaced to enable urban development funded by foreign direct investment. Demonstrates how global capital flows produce local displacement and social exclusion.' },
+  { type:'casestudy', q:'What does Ciputra International City demonstrate?', atag:'concept', a:'Luxury gated enclave, Hanoi, Vietnam', sub:'Economic liberalisation drove development of a luxury gated community. Residents rarely venture beyond the complex (Drummond). Demonstrates market-driven socio-spatial segregation.' },
+  { type:'casestudy', q:'What does US redlining demonstrate?', atag:'concept', a:'State-sanctioned racial segregation, 1930s', sub:'Government policy barring people of colour from home loans, creating white-only suburbs. Denied property as a wealth-building vehicle. Effects persist today — formal political mechanism of exclusion.' },
+  { type:'concept', q:'What is the Brundtland definition of sustainability?', atag:'date', a:'Brundtland Commission (1987)', sub:'Meeting the needs of the present without compromising the ability of future generations to meet their own needs. Three pillars: environmental, social, economic.' },
+  { type:'date', q:'When was the Brundtland Report and what did it define?', atag:'concept', a:'1987 — sustainable development', sub:'Development that meets present needs without compromising future generations. Most important definition of sustainability in the course.' },
+  { type:'theorist', q:'What do Gibson-Graham argue?', atag:'concept', a:'Diverse economies', sub:'Capitalism is not the only economy. Many alternative economic forms already exist — volunteering, mutual aid, cooperatives, informal labour. Recognising this opens genuine possibilities for alternative futures.' },
+  { type:'concept', q:'What is the diverse economies framework?', atag:'theorist', a:'Gibson-Graham', sub:'A framework recognising multiple economic practices beyond capitalism. Challenges the assumption that capitalism is the only way to organise economic life.' },
+  { type:'theorist', q:'What does Erik Olin Wright argue?', atag:'concept', a:'Real utopias', sub:'Existing institutions that already demonstrate transformative potential — not hypothetical alternatives but functioning proof that different arrangements are possible. E.g. Kai Ika, repair cafés.' },
+  { type:'concept', q:'What is a real utopia?', atag:'theorist', a:'Erik Olin Wright', sub:'An existing institution already demonstrating transformative potential. Used to elevate local case studies from interesting examples to proof of broader possibility for change.' },
+  { type:'concept', q:'What is degrowth?', atag:'theorist', a:'Associated with Erik Olin Wright; critiqued by Thunberg', sub:'Planned reduction of material and energy use while improving wellbeing. Challenges the assumption that growth and sustainability can be indefinitely reconciled on a finite planet.' },
+  { type:'theorist', q:'What do Fisher & Tronto (1990) argue?', atag:'concept', a:'Care ethics', sub:'Care is everything we do to maintain, continue and repair our world so people can live in it as well as possible — encompassing bodies, communities and environments together.' },
+  { type:'concept', q:'What is care ethics?', atag:'theorist', a:'Fisher & Tronto (1990)', sub:'Organising cities around care rather than profit — centring relationships, support systems and ecological health as primary values over economic growth.' },
+  { type:'concept', q:'What is more-than-human thinking?', atag:'casestudy', a:'Whanganui River, Aotearoa New Zealand', sub:'Challenges human-centred thinking by recognising the agency of animals, plants, ecosystems and rivers. Cities should be designed for nonhuman life as well as human life.' },
+  { type:'casestudy', q:'What does the Whanganui River demonstrate?', atag:'concept', a:'More-than-human thinking in practice', sub:'Legal recognition of the river as a person with rights. Demonstrates that institutional frameworks can be redesigned to reflect human embeddedness in ecological networks.' },
+  { type:'casestudy', q:'What does Kai Ika in Auckland demonstrate?', atag:'concept', a:'Diverse economies / real utopia', sub:'Community initiative redistributing fish waste — reduces food waste, improves food access for communities facing food insecurity, builds social networks outside commercial systems.' },
+  { type:'concept', q:'What are planetary boundaries?', atag:'date', a:'Rockström et al. (2009)', sub:'The environmental limits within which human civilisation can safely operate. Used to frame the environmental consequences of unchecked urbanisation and consumption.' },
+  { type:'date', q:'When did Rockström et al. identify planetary boundaries?', atag:'concept', a:'2009', sub:'Identified the environmental limits within which human civilisation can safely operate — climate, biodiversity, land use, freshwater, ocean acidification among others.' },
+  { type:'concept', q:'What is a commodity chain?', atag:'theorist', a:'Kneafsey et al. (2021) — food geographies', sub:'All stages connecting production and consumption. Chocolate example: cocoa farmers → traders → processors → manufacturers → retailers → consumers. Consumers rarely know the conditions of production.' },
+  { type:'theorist', q:'What does Lepawsky (2017) argue?', atag:'concept', a:'Global waste flows', sub:'Waste does not disappear — it is displaced geographically. Wealthier countries export waste to poorer ones, raising questions of justice, responsibility and inequality.' },
+  { type:'concept', q:'What is the more-than-human perspective in urban planning?', atag:'casestudy', a:'Wildlife-centred urban planning', sub:'Cities should be designed around ecological needs as well as human movement. Urban barriers — roads, fences, buildings — disrupt migration and habitat access for nonhuman life.' },
+  { type:'casestudy', q:'What does Auckland\'s green space loss demonstrate?', atag:'concept', a:'Environmental injustice / unsustainable urban design', sub:'30% loss per person from 1980 to 2016. Falls disproportionately on lower income communities. Demonstrates that environmental burdens are unequally distributed — a sustainable city must also be a just city.' },
+];
+
+let deck = [...all];
+let idx = 0;
+let flipped = false;
+let activeFilter = 'all';
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function tagClass(t) {
+  return t === 'theorist' ? 'tag-theorist' : t === 'concept' ? 'tag-concept' : t === 'date' ? 'tag-date' : 'tag-casestudy';
+}
+function tagLabel(t) {
+  return t === 'theorist' ? 'Theorist' : t === 'concept' ? 'Concept' : t === 'date' ? 'Date' : 'Case study';
+}
+
+function render() {
+  const c = deck[idx];
+  const ft = document.getElementById('front-tag');
+  ft.className = 'tag ' + tagClass(c.type);
+  ft.textContent = tagLabel(c.type);
+  document.getElementById('front-text').textContent = c.q;
+  const bt = document.getElementById('back-tag');
+  bt.className = 'tag ' + tagClass(c.atag);
+  bt.textContent = tagLabel(c.atag);
+  document.getElementById('back-text').textContent = c.a;
+  document.getElementById('back-sub').textContent = c.sub;
+  document.getElementById('counter').textContent = (idx + 1) + ' / ' + deck.length;
+  document.getElementById('prog').style.width = ((idx + 1) / deck.length * 100) + '%';
+  document.getElementById('hint').textContent = flipped ? 'Click to see question' : 'Click card to reveal answer';
+}
+
+function flipCard() {
+  flipped = !flipped;
+  document.getElementById('card').classList.toggle('flipped');
+  document.getElementById('hint').textContent = flipped ? 'Click to see question' : 'Click card to reveal answer';
+}
+
+function nextCard() {
+  idx = (idx + 1) % deck.length;
+  flipped = false;
+  document.getElementById('card').classList.remove('flipped');
+  render();
+}
+
+function prevCard() {
+  idx = (idx - 1 + deck.length) % deck.length;
+  flipped = false;
+  document.getElementById('card').classList.remove('flipped');
+  render();
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  deck = f === 'all' ? [...all] : all.filter(c => c.type === f);
+  shuffle(deck);
+  idx = 0;
+  flipped = false;
+  document.getElementById('card').classList.remove('flipped');
+  render();
+}
+
+function shuffleAndReset() {
+  shuffle(deck);
+  idx = 0;
+  flipped = false;
+  document.getElementById('card').classList.remove('flipped');
+  render();
+}
+
+shuffle(deck);
+render();
+</script>
+</body>
+</html>
